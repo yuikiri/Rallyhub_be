@@ -189,7 +189,7 @@ public class Service: IService
 
         string bankName = "MBBank";
         string bankAccount = "VQRQAIUZK3222";
-        string description = $"RALLYHUB-{booking.Id:N}";
+        string description = $"RALLY-{booking.Id:N}";
         
         string qrCodeUrl = $"https://qr.sepay.vn/img?" +
                            $"acc={bankAccount}&" +
@@ -218,7 +218,7 @@ public class Service: IService
     {
         var description = request.Code;
         
-        var raw = description.Replace("RALLYHUB", "");
+        var raw = description.Replace("RALLY", "");
         
         Guid? bookingId = null;
         
