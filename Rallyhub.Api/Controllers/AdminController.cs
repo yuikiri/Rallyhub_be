@@ -1,0 +1,125 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Rallyhub.Api.Extention;
+using Rallyhub.Repository;
+using Rallyhub.Service.Admin;
+using Rallyhub.Service.Models;
+using Enum = Rallyhub.Service.Enum.Enum;
+
+namespace Rallyhub.Api.Controllers;
+
+[Authorize(Policy = JwtExtensions.AdminPolicy)]
+[ApiController]
+[Route("api/[controller]")]
+public class AdminController: ControllerBase
+{
+    private readonly IService _adminService;
+
+    public AdminController(IService adminService)
+    {
+        _adminService = adminService;
+    }
+
+    [HttpGet("FilterUser")]
+    public async Task<IActionResult> FilterUser
+        ([FromQuery]Request.FilterUserRequest request)
+    {
+        var result = await _adminService.FilterUser(request);
+        return Ok(Service.Models.ApiResponseFactory.SuccessResponse
+            (result, "Danh sách user", HttpContext.TraceIdentifier));
+    }
+
+    [HttpGet("getUserDetailById")]
+    public async Task<IActionResult> UserDetail([FromQuery]Request.UserDetailRequest  request)
+    {
+        var result = await _adminService.UserDetail(request);
+        return Ok(ApiResponseFactory.SuccessResponse
+            (result, $"Thông tin chi tiết của user",  HttpContext.TraceIdentifier));
+    }
+    
+    [HttpGet("GetOwnerRequest")]
+    public async Task<IActionResult> AdminGetOwnerRequest([FromQuery]Service.Base.Request.Pagination request)
+    {
+        var result = await _adminService.AdminGetOwnerRequest(request);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Success you!", HttpContext.TraceIdentifier));
+    }
+    
+    [HttpGet("AcceptCreateOwner")]
+    public async Task<IActionResult> AdminAcceptOwnerRequest(Guid ownerRequestId)
+    {
+        var result = await _adminService.AdminApprovedOwnerRequest(ownerRequestId);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Success you!", HttpContext.TraceIdentifier));
+    }
+    
+    [HttpGet("RejectCreateOwner")]
+    public async Task<IActionResult> AdminRejectOwnerRequest(Guid ownerRequestId, string? rejectReason)
+    {
+        
+        var result = await _adminService.AdminRejectOwnerRequest(ownerRequestId, rejectReason);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Success you!", HttpContext.TraceIdentifier));
+    }
+    [HttpDelete("DeleteCourt/{id}")]
+    public async Task<IActionResult> DeleteCourt(Guid id)
+    {
+        await _adminService.DeleteCourt(id);
+        return Ok(Service.Models.ApiResponseFactory.SuccessResponse
+            ($"Xóa sân thành công",HttpContext.TraceIdentifier));
+    }
+    [HttpPatch("BanAndUnbanUser")]
+    public async Task<IActionResult> BanAndUnbanUser(Service.Admin.Request.BanAndUnbanUserRequest request)
+    {
+        await _adminService.BanAndUnbanUser(request);
+        return Ok(Service.Models.ApiResponseFactory.SuccessResponse
+            ($"Update status thành công",HttpContext.TraceIdentifier));
+    }
+    
+    [HttpGet("GetAllPendingCourts")]  
+    public async Task<IActionResult> GetAllPendingCourts([FromQuery] Request.GetPendingCourtsRequest request)  
+    {  
+        var result = await _adminService.GetPendingCourts(request);  
+        return Ok(ApiResponseFactory.SuccessResponse( result,"Lấy tất cả các sân ở trạng thái Pending thành công"   
+            , HttpContext.TraceIdentifier));  
+    }  
+  
+    [HttpPatch("RejectPendingCourt/{courtId}")]  
+    public async Task<IActionResult> RejectPendingCourt(Guid courtId,  [FromBody] Request.RejectPendingCourtsRequest request)  
+    {  
+        await _adminService.RejectPendingCourt(courtId, request);  
+        return Ok(ApiResponseFactory.SuccessResponse( "","Từ chối thành công"   
+            , HttpContext.TraceIdentifier));  
+    }  
+  
+    [HttpPatch("ApprovePendingCourt/{courtId}")]  
+    public async Task<IActionResult> ApprovePendingCourt(Guid courtId)  
+    {  
+        await _adminService.ApprovePendingCourt(courtId);  
+        return Ok(ApiResponseFactory.SuccessResponse( "","Duyệt sân thành công"   
+            , HttpContext.TraceIdentifier));  
+    }
+
+    [HttpPatch("Refund")]
+    public async Task<IActionResult> Refund(Request.RefundRequest request)
+    {
+        var result = await _adminService.Refund(request);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Refund Success", HttpContext.TraceIdentifier));
+    }
+    [HttpGet("GetWallet")]
+    public async Task<IActionResult> GetWallet([FromQuery]Request.GetWalletRequest request)
+    {
+        var result = await _adminService.GetWallet(request);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Thông tin ví của user", HttpContext.TraceIdentifier));
+    }
+    [HttpGet("GetBookingDetailStatusRefundPending")]
+    public async Task<IActionResult> GetBookingDetailStatusRefundPending()
+    {
+        var result = await _adminService.GetBookingDetailStatusRefundPending();
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Danh sách Booking Detail Status Refund Pending", HttpContext.TraceIdentifier));
+    }
+
+    [HttpPost("AddBalanceToUser")]
+    public async Task<IActionResult> AddBalanceToUser([FromBody] Request.AddBalanceRequest request)
+    {
+        var result = await _adminService.AddBalanceToUser(request);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "Đã cộng tiền thành công cho user", HttpContext.TraceIdentifier));
+    }
+}
