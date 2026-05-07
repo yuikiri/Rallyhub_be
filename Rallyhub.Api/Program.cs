@@ -120,6 +120,7 @@ var app = builder.Build();
 //     db.Database.Migrate();
 // }
 
+
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 app.UseCors("AllowAll");
