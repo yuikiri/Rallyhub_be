@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Rallyhub.Repository;
 using StatusCourt = Rallyhub.Service.Enum.Enum.StatusCreateCourt;
 namespace Rallyhub.Service.Booking;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 public class Service: IService
 {
@@ -217,54 +220,51 @@ public class Service: IService
     public async Task<bool> SepayWebhookHandler(Request.SepayWebhookRequest request)
     {
         var description = request.Code;
-        
-        var raw = description.Replace("RA", "");
-        
-        Guid? bookingId = null;
-        
-        if (raw.Length == 32) 
+        var raw = description?.Replace("RA", "").Trim();
+    
+        if (string.IsNullOrEmpty(raw) || raw.Length < 28)
         {
-            var formatted = 
-                            $"{raw.Substring(0, 8)}-" +
-                            $"{raw.Substring(8, 4)}-" +
-                            $"{raw.Substring(12, 4)}-" +
-                            $"{raw.Substring(16, 4)}-" +
-                            $"{raw.Substring(20, 12)}";
-            if (Guid.TryParse(formatted, out var guid))
-            {
-                bookingId = guid;
-            }
-        } else {
-            throw new Exception("Invalid description format");
+            throw new Exception("Error code");
         }
+        var formatted = 
+                        $"{raw.Substring(0, 8)}-" +
+                        $"{raw.Substring(8, 4)}-" +
+                        $"{raw.Substring(12, 4)}-" +
+                        $"{raw.Substring(16, 4)}-" +
+                        $"{raw.Substring(20, 12)}";
         
-        if(bookingId == null)
+        Repository.Entity.Booking? targetBooking = null;
+
+        if (Guid.TryParse(formatted, out var exactGuid))
         {
-            throw new Exception("BookingId not found in description");
+            targetBooking = await _dbContext.Bookings
+                .Include(x => x.BookingDetails)
+                .FirstOrDefaultAsync(x => x.Id == exactGuid);
         }
-        
-        var query = _dbContext.Bookings
-            .Where(x => x.Id == bookingId)
-            .Include(x => x.BookingDetails);
-        
-        var booking = await query.FirstOrDefaultAsync();
-        if(booking == null)
+
+        if (targetBooking == null)
         {
-            throw new Exception("Order not found");
+            targetBooking = await _dbContext.Bookings
+                .Include(x => x.BookingDetails)
+                .Where(x => EF.Functions.TrigramsSimilarity(x.Id.ToString(), formatted) > 0.68)
+                .OrderBy(x => EF.Functions.TrigramsSimilarityDistance(x.Id.ToString(), formatted))
+                .FirstOrDefaultAsync();
         }
-        
-        if(booking.Status != "Pending")
+        if (targetBooking == null)
         {
-            throw new Exception("Order already processed");
+            throw new Exception("Not found");
         }
-        
-        if(booking.FinalPrice != request.TransferAmount)
+        if (targetBooking.Status != "Pending")
+        {
+            throw new Exception("Booking is completed");
+        }
+        if(targetBooking.FinalPrice != request.TransferAmount)
         {
             throw new Exception("Invalid transfer amount");
         }
         
-        booking.Status = "Banked";
-        _dbContext.Update(booking);
+        targetBooking.Status = "Banked";
+        _dbContext.Update(targetBooking);
         var result = await _dbContext.SaveChangesAsync();
         if (result > 0)
         {
