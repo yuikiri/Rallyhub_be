@@ -220,18 +220,17 @@ public class Service: IService
     public async Task<bool> SepayWebhookHandler(Request.SepayWebhookRequest request)
     {
         var description = request.Code;
-        var raw = description?.Replace("RA", "").Trim();
+        var raw = description.Replace("RA", "");
     
         if (string.IsNullOrEmpty(raw) || raw.Length < 28)
         {
             throw new Exception("Error code");
         }
-        var formatted = 
-                        $"{raw.Substring(0, 8)}-" +
+        var formatted = $"{raw.Substring(0, 8)}-" +
                         $"{raw.Substring(8, 4)}-" +
                         $"{raw.Substring(12, 4)}-" +
                         $"{raw.Substring(16, 4)}-" +
-                        $"{raw.Substring(20, 12)}";
+                        $"{raw.Substring(20, 10)}";
         
         Repository.Entity.Booking? targetBooking = null;
 
