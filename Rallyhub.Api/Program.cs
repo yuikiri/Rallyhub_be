@@ -1,5 +1,5 @@
-using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using Quartz;
 using Rallyhub.Api.Extention;
 using Rallyhub.Api.Middleware;
@@ -23,13 +23,14 @@ using WalletService = Rallyhub.Service.Wallet;
 using BookingService = Rallyhub.Service.Booking;
 using WithdrawalService = Rallyhub.Service.Withdrawal;
 
-Env.Load();
 
-var aspnetCoreEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", aspnetCoreEnv);
 // using DiscordService = Rallyhub.Service.DiscordService;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Set default culture to InvariantCulture (dot as decimal separator)
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 // Add services to the container.
 
@@ -66,6 +67,7 @@ builder.Services.AddScoped<TransactionService.IService, TransactionService.Servi
 builder.Services.AddScoped<WalletService.IService, WalletService.Service>();
 builder.Services.AddScoped<BookingService.IService, BookingService.Service>();
 builder.Services.AddScoped<WithdrawalService.IService, WithdrawalService.Service>();
+
 
 
 
@@ -122,7 +124,6 @@ var app = builder.Build();
 //     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 //     db.Database.Migrate();
 // }
-
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 

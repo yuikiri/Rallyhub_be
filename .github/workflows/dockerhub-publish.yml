@@ -3,10 +3,10 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - main
+      - develop
 
 env:
-  IMAGE_NAME: Rallyhub-Deploy
+  IMAGE_NAME: Rallyhub-deploy
 
 jobs:
   docker:

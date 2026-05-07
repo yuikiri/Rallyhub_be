@@ -57,14 +57,12 @@ public class Service: IService
             Price = x.Price,
             IsAvailable = true
         }).ToList();
-        //Apply override 
         foreach (var ov in overrides)
         {
-            //remove slot bi override
             result.RemoveAll(x => 
                 x.StartTime >= ov.StartTime && 
                 x.EndTime <= ov.EndTime);
-            //add slot moi
+
             result.Add(new Response.SlotResponse
             {
                 StartTime = ov.StartTime,
@@ -73,22 +71,31 @@ public class Service: IService
                 IsAvailable = true
             });
         }
-        //Apply exception 
+        
         foreach (var ex in exceptions)
         {
             result.RemoveAll(x =>
                 x.StartTime < ex.EndTime &&
                 x.EndTime > ex.StartTime);
+            //
+            result.Add(new Response.SlotResponse
+            {
+                StartTime = ex.StartTime,
+                EndTime = ex.EndTime,
+                IsAvailable = false
+            });
         }
+        
         var bookedSlots = await _dbContext.BookingDetails
             .Where(x =>
                 x.SubCourtId == request.SubCourtId &&
-                x.Date.Date == request.Date.ToDateTime(TimeOnly.MinValue).Date && 
+                x.Date.Date == request.Date.ToDateTime(TimeOnly.MinValue) && 
                 (x.Status == "Pending" || x.Status == "Banked"))
             .ToListAsync();
         
         foreach (var slot in result)
         {
+            if (!slot.IsAvailable) continue;
             slot.IsAvailable = !bookedSlots.Any(b =>
                 b.StartTime < slot.EndTime &&
                 b.EndTime > slot.StartTime);
@@ -207,7 +214,7 @@ public class Service: IService
         };
     }
     
-    public async Task SepayWebhookHandler(Request.SepayWebhookRequest request)
+    public async Task<bool> SepayWebhookHandler(Request.SepayWebhookRequest request)
     {
         var description = request.Code;
         
@@ -218,11 +225,11 @@ public class Service: IService
         if (raw.Length == 32) 
         {
             var formatted = 
-                $"{raw.Substring(0, 8)}-" +
-                $"{raw.Substring(8, 4)}-" +
-                $"{raw.Substring(12, 4)}-" +
-                $"{raw.Substring(16, 4)}-" +
-                $"{raw.Substring(20, 12)}";
+                            $"{raw.Substring(0, 8)}-" +
+                            $"{raw.Substring(8, 4)}-" +
+                            $"{raw.Substring(12, 4)}-" +
+                            $"{raw.Substring(16, 4)}-" +
+                            $"{raw.Substring(20, 12)}";
             if (Guid.TryParse(formatted, out var guid))
             {
                 bookingId = guid;
@@ -258,8 +265,11 @@ public class Service: IService
         
         booking.Status = "Banked";
         _dbContext.Update(booking);
-        await _dbContext.SaveChangesAsync();
-        
-        await _dbContext.SaveChangesAsync();
+        var result = await _dbContext.SaveChangesAsync();
+        if (result > 0)
+        {
+            return true;
+        }
+        return false;
     }
 }
