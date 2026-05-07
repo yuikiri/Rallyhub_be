@@ -72,7 +72,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", (string)null);
 
                     b.HasData(
                         new
@@ -191,7 +191,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("SubCourtId");
 
-                    b.ToTable("BookingDetails");
+                    b.ToTable("BookingDetails", (string)null);
 
                     b.HasData(
                         new
@@ -322,7 +322,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("Campaigns");
+                    b.ToTable("Campaigns", (string)null);
 
                     b.HasData(
                         new
@@ -456,7 +456,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("CourtId");
 
-                    b.ToTable("CampaignCourts");
+                    b.ToTable("CampaignCourts", (string)null);
 
                     b.HasData(
                         new
@@ -528,7 +528,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("SubCourtDetailId");
 
-                    b.ToTable("ConfigSlots");
+                    b.ToTable("ConfigSlots", (string)null);
 
                     b.HasData(
                         new
@@ -955,7 +955,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("Courts");
+                    b.ToTable("Courts", (string)null);
 
                     b.HasData(
                         new
@@ -1055,7 +1055,7 @@ namespace Rallyhub.Repository.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
 
                     b.HasData(
                         new
@@ -1112,7 +1112,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("SubCourtDetailId");
 
-                    b.ToTable("Exceptions");
+                    b.ToTable("Exceptions", (string)null);
 
                     b.HasData(
                         new
@@ -1204,7 +1204,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Feedbacks");
+                    b.ToTable("Feedbacks", (string)null);
 
                     b.HasData(
                         new
@@ -1296,7 +1296,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("LikeListDetails");
+                    b.ToTable("LikeListDetails", (string)null);
 
                     b.HasData(
                         new
@@ -1398,7 +1398,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
 
                     b.HasData(
                         new
@@ -1515,7 +1515,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("SubCourtDetailId");
 
-                    b.ToTable("OverideSlots");
+                    b.ToTable("OverideSlots", (string)null);
 
                     b.HasData(
                         new
@@ -1643,7 +1643,7 @@ namespace Rallyhub.Repository.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Owners");
+                    b.ToTable("Owners", (string)null);
 
                     b.HasData(
                         new
@@ -1758,7 +1758,7 @@ namespace Rallyhub.Repository.Migrations
                     b.HasIndex("TaxCode")
                         .IsUnique();
 
-                    b.ToTable("OwnerRequests");
+                    b.ToTable("OwnerRequests", (string)null);
 
                     b.HasData(
                         new
@@ -1840,7 +1840,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
 
                     b.HasData(
                         new
@@ -1932,7 +1932,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("CourtId");
 
-                    b.ToTable("SubCourts");
+                    b.ToTable("SubCourts", (string)null);
 
                     b.HasData(
                         new
@@ -2047,7 +2047,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SystemReports");
+                    b.ToTable("SystemReports", (string)null);
 
                     b.HasData(
                         new
@@ -2187,7 +2187,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("WalletId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
 
                     b.HasData(
                         new
@@ -2333,7 +2333,7 @@ namespace Rallyhub.Repository.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
 
                     b.HasData(
                         new
@@ -2471,7 +2471,7 @@ namespace Rallyhub.Repository.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Wallets");
+                    b.ToTable("Wallets", (string)null);
 
                     b.HasData(
                         new
@@ -2589,7 +2589,7 @@ namespace Rallyhub.Repository.Migrations
 
                     b.HasIndex("WalletId");
 
-                    b.ToTable("Withdrawals");
+                    b.ToTable("Withdrawals", (string)null);
                 });
 
             modelBuilder.Entity("Rallyhub.Repository.Entity.Booking", b =>

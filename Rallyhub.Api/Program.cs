@@ -70,7 +70,6 @@ builder.Services.AddScoped<WithdrawalService.IService, WithdrawalService.Service
 
 
 
-
 builder.Services.AddHttpClient("VietMap", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(10);
