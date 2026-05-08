@@ -818,7 +818,7 @@
                 builder.HasKey(x => x.Id);
                 builder.Property(x => x.Type)
                     .IsRequired()
-                    .HasMaxLength(50);
+                    .HasMaxLength(15);
                 builder.Property(x => x.Amount)
                     .IsRequired()
                     .HasColumnType("decimal(18,2)");
@@ -829,21 +829,21 @@
                     .IsRequired()
                     .HasColumnType("decimal(18,2)");
                 builder.Property(x => x.SePayId)
-                    .HasMaxLength(250);
+                    .HasMaxLength(50);
                 builder.HasIndex(x => x.SePayId).IsUnique();
                 builder.Property(x => x.BankRefCode)
-                    .HasMaxLength(250);
+                    .HasMaxLength(50);
                 builder.HasIndex(x => x.BankRefCode).IsUnique();
                 builder.Property(x => x.BankAccountNumber)
                     .HasMaxLength(500);
                 builder.Property(x => x.TransferContent)
                     .HasMaxLength(500);
                 builder.Property(x => x.ActionCode)
-                    .HasMaxLength(250);
+                    .HasMaxLength(50);
                 builder.HasIndex(x => x.ActionCode).IsUnique();
                 
                 builder.Property(x => x.Signature)
-                    .HasMaxLength(250);
+                    .HasMaxLength(50);
                 builder.Property(x => x.Status)
                     .IsRequired()
                     .HasDefaultValue("Success");

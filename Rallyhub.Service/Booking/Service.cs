@@ -3,9 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Rallyhub.Repository;
 using StatusCourt = Rallyhub.Service.Enum.Enum.StatusCreateCourt;
 namespace Rallyhub.Service.Booking;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 public class Service: IService
 {

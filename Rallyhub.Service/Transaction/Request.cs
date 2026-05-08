@@ -4,7 +4,7 @@ public class Request
 {
     public class CreateTransactionRequest
     {
-        public string Type { get; set; }
+        public string Type { get; set; }//kiểu
         public decimal Amount { get; set; }
         public decimal BalanceBefore { get; set; }
         public decimal BalanceAfter  { get; set; }

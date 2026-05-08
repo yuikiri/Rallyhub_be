@@ -92,7 +92,7 @@ builder.Services.AddQuartz(options =>
             trigger
                 .ForJob(bookingJobKey)
                 .WithSimpleSchedule(schedule => schedule
-                    .WithIntervalInSeconds(150) // 2.5 phút = 150 giây
+                    .WithIntervalInSeconds(10) // 2.5 phút = 150 giây
                     .RepeatForever()
                 )
         );

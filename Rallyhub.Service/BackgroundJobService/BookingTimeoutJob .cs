@@ -9,7 +9,7 @@ public class BookingTimeoutJob  : IJob
 {
     private const string PendingStatus = "Pending";
     private const string CancelledStatus = "Cancelled";
-    private static readonly TimeSpan BookingTimeout = TimeSpan.FromSeconds(200);
+    private static readonly TimeSpan BookingTimeout = TimeSpan.FromSeconds(20);
     
     private readonly AppDbContext _dbContext;
     private readonly ILogger _logger;
