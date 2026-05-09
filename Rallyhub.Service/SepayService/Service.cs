@@ -91,10 +91,6 @@ public class Service : IService
             {
                 throw new Exception("Wallet not found");
             }
-
-            _dbContext.Update(targetBooking);
-            await _dbContext.SaveChangesAsync();
-
             var transactionI = new Transaction.Request.CreateTransactionRequest()
             {
                 Type = Transaction.Request.TypeList.Payment,
@@ -116,6 +112,10 @@ public class Service : IService
             {
                 throw new Exception("Error creating transaction");
             }
+            _dbContext.Update(targetBooking);
+            await _dbContext.SaveChangesAsync();
+
+            
 
             return true;
         }

@@ -498,7 +498,7 @@ public class Service: IService
                 x.Status == "Banked" ? 2 :    
                 x.Status == "Refund" ? 3 :
                 x.Status == "Complete" ? 4 :
-                x.Status == "Cancel" ? 5 : 6) 
+                x.Status == "Cancelled" ? 5 : 6) 
             .ThenBy(x => x.CreatedAt);
         var total = await booking.CountAsync();
         booking = booking
