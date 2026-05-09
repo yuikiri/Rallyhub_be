@@ -8,11 +8,13 @@ public class Service : IService
 {
     private readonly AppDbContext _dbcontext;
     private readonly IHttpContextAccessor _httpAccessor;
+    private readonly Transaction.IService _transactionService;
 
-    public Service(AppDbContext dbContext, IHttpContextAccessor httpAccessor)
+    public Service(AppDbContext dbContext, IHttpContextAccessor httpAccessor, Transaction.IService transactionService)
     {
         _dbcontext = dbContext;
         _httpAccessor = httpAccessor;
+        _transactionService = transactionService;
     }
     
     public async Task<bool> CreateWallet(Guid userId)
@@ -62,12 +64,13 @@ public class Service : IService
     public async Task<Response.GetInfoWalletResponse> GetInforWallet()
     {
         var userIdGuild = Guid.Parse(_httpAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "UserId")!.Value);
-        var wallet = await _dbcontext.Wallets.Include(wallet => wallet.User).FirstOrDefaultAsync(x => x.UserId == userIdGuild);
+        var wallet = await _dbcontext.Wallets
+            .Include(wallet => wallet.User)
+            .FirstOrDefaultAsync(x => x.UserId == userIdGuild);
         if (wallet == null)
         {
             throw new Exception("Wallet not found");
         }
-
         var selectQuery = new Response.GetInfoWalletResponse()
         {
             Id = wallet.Id,
@@ -100,7 +103,96 @@ public class Service : IService
         }
         return "Failed remove bank wallet";
     }
+    public async Task<Response.AddBalanceToWalletFromPaymentResponse> AddBalanceToWalletFromPayment(
+        decimal requestAmount)
+    {
+        var customerIdClaim = _httpAccessor.HttpContext.User.Claims
+            .FirstOrDefault(x => x.Type == "CustomerId")?.Value;
+        var pendingTransaction = await _dbcontext.Transactions
+            .FirstOrDefaultAsync(x => x.Status == "Pending");
+        if (pendingTransaction != null)
+        {
+            if (pendingTransaction.Amount != requestAmount)
+            {
+                pendingTransaction.Amount = requestAmount;
+                _dbcontext.Transactions.Update(pendingTransaction);
+                await _dbcontext.SaveChangesAsync();
+            }
+            if (customerIdClaim == null)
+            {
+                throw new Exception("Không tìm thấy thông tin của User");
+            }
+            var customerId = Guid.Parse(customerIdClaim);
+        
+            var existWallet = await _dbcontext.Wallets.FirstOrDefaultAsync(x => x.UserId == customerId);
+            if (existWallet == null)
+            {
+                throw new Exception("Không tìm thấy ví");
+            }
+        
+            string bankName = "MBBank";
+            string bankAccount = "VQRQAIUZK3222";
+            string description = $"WA-{existWallet.Id:N}";
+        
+            string qrCodeUrl = $"https://qr.sepay.vn/img?" +
+                               $"acc={bankAccount}&" +
+                               $"bank={bankName}&" +
+                               $"amount={requestAmount}&" +
+                               $"des={description}&" +
+                               $"template=qronly";
+            
+            return new Response.AddBalanceToWalletFromPaymentResponse
+            {
+                Id = existWallet.Id,
+                Amount = requestAmount,
+                QrCodeUrl = qrCodeUrl,
+            };
+        }
+        else
+        {
+            if (customerIdClaim == null)
+            {
+                throw new Exception("Không tìm thấy thông tin của User");
+            }
+            var customerId = Guid.Parse(customerIdClaim);
+        
+            var existWallet = await _dbcontext.Wallets.FirstOrDefaultAsync(x => x.UserId == customerId);
+            if (existWallet == null)
+            {
+                throw new Exception("Không tìm thấy ví");
+            }
+        
+            string bankName = "MBBank";
+            string bankAccount = "VQRQAIUZK3222";
+            string description = $"WA-{existWallet.Id:N}";
+        
+            string qrCodeUrl = $"https://qr.sepay.vn/img?" +
+                               $"acc={bankAccount}&" +
+                               $"bank={bankName}&" +
+                               $"amount={requestAmount}&" +
+                               $"des={description}&" +
+                               $"template=qronly";
+    
+            var transactionI = new Transaction.Request.CreateTransactionRequest
+            {
+                Type = Transaction.Request.TypeList.Deposit,
+                Amount = requestAmount,
+                BalanceBefore = existWallet.Balance,
+                BalanceAfter =  existWallet.Balance + requestAmount,
+                Status = "Pending",
+                WalletId =  existWallet.Id,
+            };
+            _dbcontext.Add(transactionI);
+            await _dbcontext.SaveChangesAsync();
 
+            return new Response.AddBalanceToWalletFromPaymentResponse
+            {
+                Id = existWallet.Id,
+                Amount = requestAmount,
+                QrCodeUrl = qrCodeUrl,
+            };
+        }
+    }
     public async Task<bool> AddBanlanceToWallet(Guid userId, decimal amount, string type)
     {
         var user = await _dbcontext.Users.FirstOrDefaultAsync(x => x.Id == userId);
@@ -120,7 +212,7 @@ public class Service : IService
             {
                 break;
             }
-            case "Wallet":
+            case "wallet":
             {
                 if (wallet.BankName == null || wallet.BankAccount == null || wallet.BankAccountName == null)
                 {
@@ -138,6 +230,7 @@ public class Service : IService
         wallet.Balance += amount;
         wallet.Version += 1;
         wallet.UpdatedAt = DateTimeOffset.UtcNow;
+        _dbcontext.Wallets.Update(wallet);
         var result = await _dbcontext.SaveChangesAsync();
         if (result > 0)
         {
@@ -185,6 +278,7 @@ public class Service : IService
         wallet.Balance -= amount;
         wallet.Version += 1;
         wallet.UpdatedAt = DateTimeOffset.UtcNow;
+        _dbcontext.Wallets.Update(wallet);
         var result = await _dbcontext.SaveChangesAsync();
         if (result > 0)
         {
@@ -193,10 +287,39 @@ public class Service : IService
         return false;
     }
 
-    public async Task<string> AdminUpBalanceForUser(Guid userId, decimal amount)
+    public async Task<string> AdminUpBalanceForUser(Guid userId, decimal amount, string? description)
     {
-        await AddBanlanceToWallet(userId, amount, "Wallet");
+        // await AddBanlanceToWallet(userId, amount, "Wallet");
         //transsaction
+        var user = await _dbcontext.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        if (user == null)
+        {
+            throw new Exception("User not found");
+        }
+        var wallet = await _dbcontext.Wallets.FirstOrDefaultAsync(x => x.UserId == user.Id);
+        if (wallet == null)
+        {
+            throw new  Exception("Wallet not found");
+        }
+        
+        var transactionI = new Transaction.Request.CreateTransactionRequest()
+        {
+            Type = Transaction.Request.TypeList.Withdrawal,
+            Amount = amount,
+            BalanceBefore = wallet.Balance,
+            BalanceAfter =  wallet.Balance + amount,
+            TransferContent = description,
+            Status = "Success",
+            WalletId =  wallet.Id,
+        };
+        if (!await AddBanlanceToWallet(userId, amount, "Wallet"))
+        {
+            throw new Exception("Wallet reject balance failed");
+        }
+        if (!await _transactionService.CreateTransaction(transactionI))
+        {
+            throw new Exception("Error creating transaction");
+        }
         return "Success AdminDeduct";
     }
 }

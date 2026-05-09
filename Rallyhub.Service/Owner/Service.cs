@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Rallyhub.Repository;
 using Rallyhub.Repository.Entity;
 using Exception = System.Exception;
-using StatusCourt = Rallyhub.Service.Enum.Enum.StatusCreateCourt;
 namespace Rallyhub.Service.Owner;
 
 public class Service : IService
@@ -99,7 +98,9 @@ public class Service : IService
                 StartTime = x.OpenTime,
                 EndTime = x.CloseTime,
                 PictureUrl = x.PictureUrl,
-
+                MapUrl = x.MapUrl,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
             });  
         var listResult = await selectedQuery.ToListAsync();  
   
@@ -678,6 +679,13 @@ public class Service : IService
                 x.Id == request.SubCourtId);
         if (subCourt == null)
             throw new Exception("Sân con không tồn tại");
+        
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (request.Date < today)
+        {
+            throw new Exception("Không thể xem slot trong quá khứ");
+        }
         
         var configSlots = await _dbContext.ConfigSlots
             .Where(x => x.SubCourtDetailId == request.SubCourtId)

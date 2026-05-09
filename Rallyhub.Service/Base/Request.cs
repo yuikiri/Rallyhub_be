@@ -14,4 +14,13 @@ public class Request
         public int PageSize { get; set; } = 10;
         public int PageIndex { get; set; } = 1;
     }
+    public class PagingDay : Pagination
+    {
+        public DateOnly? Date { get; set; }
+    }
+
+    public class PagingDay2 : Pagination
+    {
+        public DateOnly? Date { get; set; }
+    }
 }
