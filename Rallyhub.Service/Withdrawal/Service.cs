@@ -172,7 +172,7 @@ public class Service : IService
             Status = "Success",
             WalletId =  wallet.Id,
         };
-        if (!await _walletService.AddBanlanceToWallet(withdrawalRequest.Wallet.UserId, withdrawalRequest.Amount, "Wallet"))
+        if (!await _walletService.AddBanlanceToWallet(withdrawalRequest.Wallet.UserId, withdrawalRequest.Amount, "Payment"))
         {
             throw new Exception("Wallet reject balance failed");
         }

@@ -304,7 +304,7 @@ public class Service : IService
             Status = "Success",
             WalletId =  wallet.Id,
         };
-        if (!await AddBanlanceToWallet(userId, amount, "Wallet"))
+        if (!await AddBanlanceToWallet(userId, amount, "Payment"))
         {
             throw new Exception("Wallet reject balance failed");
         }

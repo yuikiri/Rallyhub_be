@@ -175,7 +175,7 @@ public class Service : IService
                 throw new Exception("Invalid transfer amount");
             }
 
-            if (!await _walletService.AddBanlanceToWallet(targetWallet.UserId, request.TransferAmount, "Wallet"))
+            if (!await _walletService.AddBanlanceToWallet(targetWallet.UserId, request.TransferAmount, "Payment"))
             {
                 throw new Exception("Wallet reject balance failed");
             }

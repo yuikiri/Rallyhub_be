@@ -326,7 +326,7 @@ public class Service: IService
                 x.EndTime == slot.EndTime).Price,
             Status = "Pending",
         }).ToList();
-        if (!await _walletService.ApartBanlanceFromWallet(customerId, finalPrice, "Wallet"))
+        if (!await _walletService.ApartBanlanceFromWallet(customerId, finalPrice, "Payment"))
         {
             throw new Exception("Wallet apart balance failed");
         } 
@@ -399,7 +399,7 @@ public class Service: IService
 
         decimal balanceBefore = user.Wallet!.Balance;
 
-        if (!await _walletService.AddBanlanceToWallet(user.Id, booking.FinalPrice, "Wallet"))
+        if (!await _walletService.AddBanlanceToWallet(user.Id, booking.FinalPrice, "Payment"))
         {
             throw new Exception("Error adding balance to wallet");
         }
