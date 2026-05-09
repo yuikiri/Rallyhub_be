@@ -131,7 +131,7 @@ public class Service : IService
         {
             To = email,
             Subject = "subject",
-            Body = MailTemplate.GenerateOtpRegisterTemplate(email, "otpCode")
+            Body = "thank you"
         });
         return "Success";
     }
