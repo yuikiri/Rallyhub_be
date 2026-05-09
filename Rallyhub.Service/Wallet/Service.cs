@@ -231,12 +231,8 @@ public class Service : IService
         wallet.Version += 1;
         wallet.UpdatedAt = DateTimeOffset.UtcNow;
         _dbcontext.Wallets.Update(wallet);
-        var result = await _dbcontext.SaveChangesAsync();
-        if (result > 0)
-        {
-            return true;
-        }
-        return false;
+        // var result = await _dbcontext.SaveChangesAsync();
+        return true;
     }
     
     public async Task<bool> ApartBanlanceFromWallet(Guid userId, decimal amount, string type)
@@ -279,12 +275,8 @@ public class Service : IService
         wallet.Version += 1;
         wallet.UpdatedAt = DateTimeOffset.UtcNow;
         _dbcontext.Wallets.Update(wallet);
-        var result = await _dbcontext.SaveChangesAsync();
-        if (result > 0)
-        {
-            return true;
-        }
-        return false;
+        // var result = await _dbcontext.SaveChangesAsync();
+        return true;
     }
 
     public async Task<string> AdminUpBalanceForUser(Guid userId, decimal amount, string? description)
@@ -320,6 +312,11 @@ public class Service : IService
         {
             throw new Exception("Error creating transaction");
         }
-        return "Success AdminDeduct";
+        var result = await _dbcontext.SaveChangesAsync();
+        if (result > 0)
+        {
+            return "Success AdminDeduct";
+        }
+        return "failed";
     }
 }

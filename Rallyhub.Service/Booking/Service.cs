@@ -350,13 +350,14 @@ public class Service: IService
             }).ToList(),
         };
     }
+
     public async Task<Response.BookingRefundResponse> BookingRefund (Guid bookingId)
     {
         var customerIdClaim = _httpContext.HttpContext.User.Claims
             .FirstOrDefault(x => x.Type == "CustomerId")?.Value;
         if (customerIdClaim == null)
         {
-            throw new Exception("Không tìm thấy Customer");
+            throw new Exception("Customer not found");
         }
         var customerId = Guid.Parse(customerIdClaim);
         var user = await _dbContext.Users
@@ -364,50 +365,51 @@ public class Service: IService
             .FirstOrDefaultAsync(x => x.Customer!.Id == customerId);
         if (user == null)
         {
-            throw new Exception("Không tìm thấy user");
+            throw new Exception("User not found");
         }
        
         var booking = await _dbContext.Bookings
             .Include(x => x.BookingDetails)
                 .ThenInclude(x => x.SubCourt)
                     .ThenInclude(x => x.Court)
-            .FirstOrDefaultAsync(x => x.Id == bookingId && x.CustomerId == customerId); // Thêm check bảo mật
+            .FirstOrDefaultAsync(x => x.Id == bookingId && x.CustomerId == customerId);
 
         if (booking == null)
         {
-            throw new Exception("Không tìm thấy đơn đặt sân hoặc bạn không có quyền hoàn tiền đơn này");
+            throw new Exception("Booking not found or you do not have permission to refund this booking");
         }
         if (booking.Status != "Banked")
         {
-            throw new Exception($"Không thể hoàn tiền đối với đơn hàng đang ở trạng thái {booking.Status}");
+            throw new Exception($"Cannot refund booking with status {booking.Status}");
         }
 
-        // Lấy slot sớm nhất để tính toán thời hạn refund
-        var earlierSlot = booking.BookingDetails.OrderBy(x => x.StartTime).First();
-        
-        // Chuyển DateOnly + TimeOnly thành DateTime để có thể tính toán thời gian
-        var slotStartDateTime = earlierSlot.Date.ToDateTime(earlierSlot.StartTime);
-        var refundDeadline = slotStartDateTime.AddHours(-(double)earlierSlot.SubCourt.Court.TimeRefundBefor!);
-        
-        // So sánh với thời gian hiện tại (Lưu ý: Nếu slot lưu giờ VN thì so sánh với DateTime.Now hoặc bù trừ múi giờ)
-        var timeNow = DateTime.Now; 
-        if (timeNow > refundDeadline)
+        if (booking.BookingDetails == null || !booking.BookingDetails.Any())
         {
-            throw new Exception("Đã quá thời hạn có thể hoàn tiền theo quy định của chủ sân");
+            throw new Exception("Booking details not found");
         }
 
-        // Cộng tiền vào ví với type là "Wallet"
+        var earlierSlot = booking.BookingDetails.OrderBy(x => x.StartTime).First();
+        var slotStartDateTime = earlierSlot.Date.Date.Add(earlierSlot.StartTime.ToTimeSpan());
+        var refundDeadline = slotStartDateTime.AddMinutes(-(double)earlierSlot.SubCourt.Court.TimeRefundBefor!);
+        
+        if (DateTime.Now > refundDeadline)
+        {
+            throw new Exception("The refund deadline has passed according to the court's policy");
+        }
+
+        decimal balanceBefore = user.Wallet!.Balance;
+
         if (!await _walletService.AddBanlanceToWallet(user.Id, booking.FinalPrice, "Wallet"))
         {
-            throw new Exception("Lỗi khi cộng tiền vào ví");
+            throw new Exception("Error adding balance to wallet");
         }
         
         var transactionI = new Transaction.Request.CreateTransactionRequest()
         {
             Type = Transaction.Request.TypeList.Refund,
             Amount = booking.FinalPrice,
-            BalanceBefore = user.Wallet!.Balance,
-            BalanceAfter =  user.Wallet!.Balance + booking.FinalPrice,
+            BalanceBefore = balanceBefore,
+            BalanceAfter = balanceBefore + booking.FinalPrice,
             Status = "Success",
             WalletId =  user.Wallet!.Id,
         };
@@ -418,15 +420,21 @@ public class Service: IService
 
         booking.Status = "Refund";
         booking.UpdatedAt = DateTimeOffset.UtcNow;
-        _dbContext.Bookings.Update(booking);
 
         foreach (var details in booking.BookingDetails)
         {
             details.Status = "Cancelled";
             details.UpdatedAt = DateTimeOffset.UtcNow;
         }
-        await _dbContext.SaveChangesAsync();
 
+        await _dbContext.SaveChangesAsync();
+        // await _mailService.SendMail(new MailContent()
+        // {
+        //     To = user.Email,
+        //     Subject = $"Welcom to Rallyhub",
+        //     Body = $"Đã hoàn tiền thành công" + "\n"
+        //         + $"{request.ImageUrl}"
+        // });
         return new Response.BookingRefundResponse()
         {
             BookingId = booking.Id,
@@ -440,11 +448,10 @@ public class Service: IService
         var customerIdClaim = _httpContext.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "CustomerId")?.Value;
         if (customerIdClaim == null)
         {
-            throw new Exception("Customer không tồn tại");
+            throw new Exception("Customer not found");
         }
         var customerId = Guid.Parse(customerIdClaim);
        
-        // Tìm Booking và BookingDetails trong 1 lần query duy nhất bằng customerId từ Token
         var pendingBooking = await _dbContext.Bookings
             .Include(x => x.BookingDetails)
             .FirstOrDefaultAsync(x => 
@@ -454,20 +461,23 @@ public class Service: IService
 
         if (pendingBooking == null)
         {
-            throw new Exception("Không tìm thấy đơn hàng ở trạng thái chờ hoặc bạn không có quyền hủy đơn này");
+            throw new Exception("Pending booking not found or you do not have permission to cancel this booking");
         }
 
         pendingBooking.Status = "Cancelled";
-        pendingBooking.UpdatedAt = DateTimeOffset.UtcNow; // Cập nhật thời gian hủy
+        pendingBooking.UpdatedAt = DateTimeOffset.UtcNow;
 
-        foreach(var slots in pendingBooking.BookingDetails)
+        if (pendingBooking.BookingDetails != null)
         {
-            slots.Status = "Cancelled";           
-            slots.UpdatedAt = DateTimeOffset.UtcNow; // Cập nhật thời gian hủy cho từng slot
+            foreach(var slots in pendingBooking.BookingDetails)
+            {
+                slots.Status = "Cancelled";           
+                slots.UpdatedAt = DateTimeOffset.UtcNow;
+            }
         }
        
         await _dbContext.SaveChangesAsync();
-        return "Hủy đặt sân thành công";
+        return "Booking cancelled successfully";
     }
 
     public async Task<Base.Response.PageResult<Response.GetBookingResponse>> GetBooking(Base.Request.PagingDay2 pagingDay2)
