@@ -95,10 +95,11 @@ public class Usercontroller : ControllerBase
     }
 
     [HttpPost("testmail")]
-    public async Task<IActionResult> TestMail(string mail)
+    // [Authorize(Policy = JwtExtensions.CustomerOrOwnerOrAdminPolicy)]
+    public async Task<IActionResult> TestMail(string email)
     {
-        var result = await _userService.senmailtouser(mail);
-        return Ok(ApiResponseFactory.SuccessResponse(result, "Thank you!", HttpContext.TraceIdentifier));
+        var result = await _userService.TestMail(email);
+        return Ok(ApiResponseFactory.SuccessResponse(result, "GetMe Success", HttpContext.TraceIdentifier));
     }
     // [HttpPost("CreateWallet")]
     // [Authorize(Policy = JwtExtensions.CustomerOrOwnerOrAdminPolicy)]

@@ -30,7 +30,7 @@ public class Service : IService
         JwtService.IService jwtService,
         OtpService.IService otpService,
         IHttpContextAccessor httpContextAccesso,
-        MailService.IService mailService)
+        MailService.IService  mailService)
     {
         _dbContext = dbContext;
         _redisCache = redisCache;
@@ -39,7 +39,8 @@ public class Service : IService
         configuration.GetSection(nameof(JwtOptions)).Bind(_jwtOption);
         configuration.GetSection(nameof(SecurityOptions)).Bind(_securityOptions);
         _httpAccessor = httpContextAccesso;
-        _mailService = mailService;
+        _mailService =  mailService;
+        
     }
     
     public async Task<string> ChangePassword(Request.ChangePasswordRequest request)
@@ -121,17 +122,23 @@ public class Service : IService
         };
     }
 
-    public async Task<string> senmailtouser(string email)
+    public async Task<string> TestMail(string mail)
     {
-        // string email = context.MergedJobDataMap.GetString("Email")!;
-        // string otpCode = context.MergedJobDataMap.GetString("OtpCode")!;
-        // string actionType = context.MergedJobDataMap.GetString("ActionType")!;
-        
+        // Validate email format
+        try
+        {
+            var mailAddress = new System.Net.Mail.MailAddress(mail);
+        }
+        catch (FormatException)
+        {
+            throw new Exception("Invalid email format.");
+        }
+
         await _mailService.SendMail(new MailContent()
         {
-            To = email,
-            Subject = "subject",
-            Body = "thank you"
+            To = mail,
+            Subject = "Test Mail from RallyHub",
+            Body = "<h1>This is a test email</h1><p>If you received this, mail service is working!</p>"
         });
         return "Success";
     }
