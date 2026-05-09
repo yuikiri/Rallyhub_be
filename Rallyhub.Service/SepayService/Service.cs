@@ -227,45 +227,48 @@ public class Service : IService
         }
         
         
-        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == targetBooking.Customer.UserId);
-        if (user == null)
-        {
-            throw new Exception("User not found");
-        }
-        
-        var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(x => x.UserId == user.Id);
-        if (wallet == null)
-        {
-            throw new Exception("Wallet not found");
-        }
+        // var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == targetBooking.Customer.UserId);
+        // if (user == null)
+        // {
+        //     throw new Exception("User not found");
+        // }
+        //
+        // var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(x => x.UserId == user.Id);
+        // if (wallet == null)
+        // {
+        //     throw new Exception("Wallet not found");
+        // }
         
         
         targetBooking.Status = "Banked";
         _dbContext.Update(targetBooking);
         var result = await _dbContext.SaveChangesAsync();
         
-        var transactionI = new Transaction.Request.CreateTransactionRequest()
+        // var transactionI = new Transaction.Request.CreateTransactionRequest()
+        // {
+        //     Type = Transaction.Request.TypeList.Payment,
+        //     Amount = request.TransferAmount,
+        //     BalanceBefore = wallet.Balance,
+        //     BalanceAfter = wallet.Balance,
+        //     Status = "Success",
+        //     SePayId = request.Id.ToString(),
+        //     BankRefCode = request.ReferenceCode,
+        //     BankAccountNumber = request.AccountNumber,
+        //     TransferContent = request.Content,
+        //     ActionCode = request.Code,
+        //     Signature =  request.Description,
+        //     BookingId =  targetBooking.Id,
+        //     WalletId = wallet.Id,
+        // };
+        // if (!await _transactionService.CreateTransaction(transactionI))
+        // {
+        //     throw new Exception("Error creating transaction");
+        // }
+        if (result > 0)
         {
-            Type = Transaction.Request.TypeList.Payment,
-            Amount = request.TransferAmount,
-            BalanceBefore = wallet.Balance,
-            BalanceAfter = wallet.Balance,
-            Status = "Success",
-            SePayId = request.Id.ToString(),
-            BankRefCode = request.ReferenceCode,
-            BankAccountNumber = request.AccountNumber,
-            TransferContent = request.Content,
-            ActionCode = request.Code,
-            Signature =  request.Description,
-            BookingId =  targetBooking.Id,
-            WalletId = wallet.Id,
-        };
-        if (!await _transactionService.CreateTransaction(transactionI))
-        {
-            throw new Exception("Error creating transaction");
+            return true;
         }
-
-        return true;
+        return false;
 
     }
 }
