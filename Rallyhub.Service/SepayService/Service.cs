@@ -102,13 +102,13 @@ public class Service : IService
                 BalanceBefore = wallet.Balance,
                 BalanceAfter = wallet.Balance,
                 Status = "Success",
-                SePayId = request.Id.ToString(),
-                BankRefCode = request.ReferenceCode,
+                // SePayId = request.Id.ToString(),
+                // BankRefCode = request.ReferenceCode,
                 BankAccountNumber = request.AccountNumber,
-                TransferContent = request.Content,
-                ActionCode = request.Code,
-                Signature = request.Description,
-                BookingId = targetBooking.Id,
+                // TransferContent = request.Content,
+                // ActionCode = request.Code,
+                // Signature = request.Description,
+                // BookingId = targetBooking.Id,
                 WalletId = wallet.Id,
             };
 
@@ -175,12 +175,12 @@ public class Service : IService
             }
 
             transaction.Status = "Success";
-            transaction.SePayId = request.Id.ToString();
-            transaction.BankRefCode = request.ReferenceCode;
+            // transaction.SePayId = request.Id.ToString();
+            // transaction.BankRefCode = request.ReferenceCode;
             transaction.BankAccountNumber = request.AccountNumber;
-            transaction.TransferContent = request.Content;
-            transaction.ActionCode = request.Code;
-            transaction.Signature = request.Description;
+            // transaction.TransferContent = request.Content;
+            // transaction.ActionCode = request.Code;
+            // transaction.Signature = request.Description;
             transaction.UpdatedAt = DateTimeOffset.UtcNow;
             _dbContext.Update(transaction);
             var result = await _dbContext.SaveChangesAsync();
