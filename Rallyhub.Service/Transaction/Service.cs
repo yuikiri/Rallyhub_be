@@ -108,13 +108,9 @@ public class Service : IService
                 break;   
             }
         }
-        _dbContext.Update(newTransaction);
-        var  result = await _dbContext.SaveChangesAsync();
-        if (result > 0)
-        {
-            return true;
-        }
-        return false;
+        // _dbContext.Update(newTransaction); // Dòng này dư thừa và có thể gây lỗi Concurrency
+        var result = await _dbContext.SaveChangesAsync();
+        return result > 0;
     }
 
     public async Task<Base.Response.PageResult<Response.GetTransactionResponse>> GetTransaction(Base.Request.PagingDay paginDay)

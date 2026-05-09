@@ -112,6 +112,12 @@ public class Service : IService
             {
                 throw new Exception("Error creating transaction");
             }
+            foreach (var detail in targetBooking.BookingDetails)
+            {
+                detail.Status = "Banked";
+                detail.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
             _dbContext.Update(targetBooking);
             await _dbContext.SaveChangesAsync();
 
