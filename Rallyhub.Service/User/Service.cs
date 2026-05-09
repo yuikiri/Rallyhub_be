@@ -8,7 +8,6 @@ using Rallyhub.Repository;
 using Rallyhub.Repository.Entity;
 using Rallyhub.Service.IdentityService;
 using Rallyhub.Service.JwtService;
-using Rallyhub.Service.MailService;
 using Exception = System.Exception;
 
 namespace Rallyhub.Service.User;
@@ -22,15 +21,13 @@ public class Service : IService
     private readonly JwtOptions _jwtOption = new();
     private readonly SecurityOptions _securityOptions = new();
     private readonly IHttpContextAccessor _httpAccessor;
-    private readonly MailService.IService _mailService;
 
     public Service(AppDbContext dbContext, 
         IDistributedCache redisCache, 
         IConfiguration configuration,
         JwtService.IService jwtService,
         OtpService.IService otpService,
-        IHttpContextAccessor httpContextAccesso,
-        MailService.IService  mailService)
+        IHttpContextAccessor httpContextAccesso)
     {
         _dbContext = dbContext;
         _redisCache = redisCache;
@@ -39,8 +36,6 @@ public class Service : IService
         configuration.GetSection(nameof(JwtOptions)).Bind(_jwtOption);
         configuration.GetSection(nameof(SecurityOptions)).Bind(_securityOptions);
         _httpAccessor = httpContextAccesso;
-        _mailService =  mailService;
-        
     }
     
     public async Task<string> ChangePassword(Request.ChangePasswordRequest request)
@@ -120,27 +115,6 @@ public class Service : IService
             PhoneNumber = (user.PhoneNumber == null ? "": user.PhoneNumber),
             AvatarUrl = user.AvatarUrl,
         };
-    }
-
-    public async Task<string> TestMail(string mail)
-    {
-        // Validate email format
-        try
-        {
-            var mailAddress = new System.Net.Mail.MailAddress(mail);
-        }
-        catch (FormatException)
-        {
-            throw new Exception("Invalid email format.");
-        }
-
-        await _mailService.SendMail(new MailContent()
-        {
-            To = mail,
-            Subject = "Test Mail from RallyHub",
-            Body = "<h1>This is a test email</h1><p>If you received this, mail service is working!</p>"
-        });
-        return "Success";
     }
 
     // public async Task UpdateWallet(Request.CreateAndUpdateWalletRequest request)

@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Quartz;
+﻿using Quartz;
 using Rallyhub.Service.MailService;
 
 namespace Rallyhub.Service.BackgroundJobService;
@@ -7,12 +6,10 @@ namespace Rallyhub.Service.BackgroundJobService;
 public class SendOtpJob : IJob
 {
     private readonly IService _mailService;
-    private readonly ILogger<SendOtpJob> _logger;
 
-    public SendOtpJob(IService mailService, ILogger<SendOtpJob> logger)
+    public SendOtpJob(IService mailService)
     {
         _mailService = mailService;
-        _logger = logger;
     }
 
     public async Task Execute(IJobExecutionContext context)
@@ -20,8 +17,6 @@ public class SendOtpJob : IJob
         string email = context.MergedJobDataMap.GetString("Email")!;
         string otpCode = context.MergedJobDataMap.GetString("OtpCode")!;
         string actionType = context.MergedJobDataMap.GetString("ActionType")!;
-
-        _logger.LogInformation("Starting SendOtpJob for {Email}, ActionType: {ActionType}", email, actionType);
 
         string subject = "";
         string htmlBody = "";
@@ -47,20 +42,11 @@ public class SendOtpJob : IJob
             //     break;
         }
 
-        try
+        await _mailService.SendMail(new MailContent()
         {
-            await _mailService.SendMail(new MailContent()
-            {
-                To = email,
-                Subject = subject,
-                Body = htmlBody
-            });
-            _logger.LogInformation("SendOtpJob completed successfully for {Email}", email);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "SendOtpJob failed for {Email}. Error: {Message}", email, ex.Message);
-            // Optionally, re-throw or handle
-        }
+            To = email,
+            Subject = subject,
+            Body = htmlBody
+        });
     }
 }
