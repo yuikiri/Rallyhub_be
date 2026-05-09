@@ -48,7 +48,7 @@ public class Service : IService
             {
                 targetBooking = await _dbContext.Bookings
                     .Include(x => x.BookingDetails)
-                    .Include(x => x.Customer) // Sửa lỗi NullReferenceException tại đây
+                    .Include(x => x.Customer)
                     .FirstOrDefaultAsync(x => x.Id == exactGuid);
             }
 
@@ -56,7 +56,7 @@ public class Service : IService
             {
                 targetBooking = await _dbContext.Bookings
                     .Include(x => x.BookingDetails)
-                    .Include(x => x.Customer) // Sửa lỗi NullReferenceException tại đây
+                    .Include(x => x.Customer)
                     .Where(x => EF.Functions.TrigramsSimilarity(x.Id.ToString(), formatted) > 0.68)
                     .OrderBy(x => EF.Functions.TrigramsSimilarityDistance(x.Id.ToString(), formatted))
                     .FirstOrDefaultAsync();
