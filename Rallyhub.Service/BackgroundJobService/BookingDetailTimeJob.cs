@@ -13,18 +13,20 @@ public class BookingDetailTimeJob : IJob
     private static readonly TimeSpan BookingDetailTime = TimeSpan.FromSeconds(150);
     private readonly AppDbContext _dbContext;
     private readonly ILogger _logger;
+    private readonly Wallet.IService _walletService;
+    private readonly Transaction.IService _transactionService;
 
-    public BookingDetailTimeJob(AppDbContext dbContext, ILogger<BookingDetailTimeJob> logger)
+    public BookingDetailTimeJob(AppDbContext dbContext, ILogger<BookingDetailTimeJob> logger, Wallet.IService  walletService, Transaction.IService transactionService)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _walletService = walletService;
+        _transactionService = transactionService;
     }
     public async Task Execute(IJobExecutionContext context)
     {
         var bankedDetailSeconds = (int)BookingDetailTime.TotalSeconds;
-        //EF core ko convert DateTimeOffset.UtcNow -> SQL đc
         var now = DateTimeOffset.UtcNow;
-        // Console.WriteLine(now);// 05/09/2026 10:19:46 +00:00 # DB: 07:00:00.000 +0700
 
         var nowDate = now.Date;
         var nowTime = TimeOnly.FromTimeSpan(now.TimeOfDay);
@@ -46,8 +48,26 @@ public class BookingDetailTimeJob : IJob
             var booking = await _dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == item.BookingId);
             if (booking!.Status == BankedStatus)
             {
+                var wallet = item.SubCourt.Court.Owner.User.Wallet;
                 booking.Status = CompletedStatus;
                 booking.UpdatedAt = now;
+                var transactionI = new Transaction.Request.CreateTransactionRequest()
+                {
+                    Type = Transaction.Request.TypeList.Receive,
+                    Amount = booking.FinalPrice,
+                    BalanceBefore = wallet.Balance,
+                    BalanceAfter =  wallet.Balance + booking.FinalPrice,
+                    Status = "Success",
+                    WalletId =  wallet.Id,
+                };
+                if (!await _walletService.AddBanlanceToWallet(wallet.UserId, booking.FinalPrice, "Payment"))
+                {
+                    throw new Exception("Wallet reject balance failed");
+                }
+                if (!await _transactionService.CreateTransaction(transactionI))
+                {
+                    throw new Exception("Error creating transaction");
+                }
             }
             _dbContext.Update(booking);
         }
