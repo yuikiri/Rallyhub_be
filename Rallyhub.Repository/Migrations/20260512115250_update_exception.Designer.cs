@@ -12,8 +12,8 @@ using Rallyhub.Repository;
 namespace Rallyhub.Repository.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260511032050_new_db")]
-    partial class new_db
+    [Migration("20260512115250_update_exception")]
+    partial class update_exception
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -158,7 +158,7 @@ namespace Rallyhub.Repository.Migrations
                     b.Property<decimal?>("MinBookingAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<Guid>("OwnerId")
+                    b.Property<Guid?>("OwnerId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("StartDate")
@@ -358,10 +358,16 @@ namespace Rallyhub.Repository.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
+
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRecurring")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Reason")
@@ -463,7 +469,7 @@ namespace Rallyhub.Repository.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("BookingId")
+                    b.Property<Guid?>("BookingId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Content")
@@ -471,11 +477,14 @@ namespace Rallyhub.Repository.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("CourtId")
+                    b.Property<Guid?>("CourtId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FeedbackId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -485,10 +494,22 @@ namespace Rallyhub.Repository.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid?>("OwnerRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SystemReportId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("TransactionId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -506,6 +527,21 @@ namespace Rallyhub.Repository.Migrations
                     b.HasIndex("BookingId");
 
                     b.HasIndex("CourtId");
+
+                    b.HasIndex("FeedbackId")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerRequestId")
+                        .IsUnique();
+
+                    b.HasIndex("ReportId")
+                        .IsUnique();
+
+                    b.HasIndex("SystemReportId")
+                        .IsUnique();
+
+                    b.HasIndex("TransactionId")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -1111,8 +1147,7 @@ namespace Rallyhub.Repository.Migrations
                     b.HasOne("Rallyhub.Repository.Entity.Owner", "Owner")
                         .WithMany("Campaigns")
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Owner");
                 });
@@ -1231,14 +1266,32 @@ namespace Rallyhub.Repository.Migrations
                     b.HasOne("Rallyhub.Repository.Entity.Booking", "Booking")
                         .WithMany("Notifications")
                         .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Rallyhub.Repository.Entity.Court", "Court")
                         .WithMany("Notifications")
                         .HasForeignKey("CourtId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Rallyhub.Repository.Entity.Feedback", "Feedback")
+                        .WithOne("Notification")
+                        .HasForeignKey("Rallyhub.Repository.Entity.Notification", "FeedbackId");
+
+                    b.HasOne("Rallyhub.Repository.Entity.OwnerRequest", "OwnerRequest")
+                        .WithOne("Notification")
+                        .HasForeignKey("Rallyhub.Repository.Entity.Notification", "OwnerRequestId");
+
+                    b.HasOne("Rallyhub.Repository.Entity.Report", "Report")
+                        .WithOne("Notification")
+                        .HasForeignKey("Rallyhub.Repository.Entity.Notification", "ReportId");
+
+                    b.HasOne("Rallyhub.Repository.Entity.SystemReport", "SystemReport")
+                        .WithOne("Notification")
+                        .HasForeignKey("Rallyhub.Repository.Entity.Notification", "SystemReportId");
+
+                    b.HasOne("Rallyhub.Repository.Entity.Transaction", "Transaction")
+                        .WithOne("Notification")
+                        .HasForeignKey("Rallyhub.Repository.Entity.Notification", "TransactionId");
 
                     b.HasOne("Rallyhub.Repository.Entity.User", "User")
                         .WithMany("Notifications")
@@ -1249,6 +1302,16 @@ namespace Rallyhub.Repository.Migrations
                     b.Navigation("Booking");
 
                     b.Navigation("Court");
+
+                    b.Navigation("Feedback");
+
+                    b.Navigation("OwnerRequest");
+
+                    b.Navigation("Report");
+
+                    b.Navigation("SystemReport");
+
+                    b.Navigation("Transaction");
 
                     b.Navigation("User");
                 });
@@ -1444,6 +1507,11 @@ namespace Rallyhub.Repository.Migrations
                     b.Navigation("Reports");
                 });
 
+            modelBuilder.Entity("Rallyhub.Repository.Entity.Feedback", b =>
+                {
+                    b.Navigation("Notification");
+                });
+
             modelBuilder.Entity("Rallyhub.Repository.Entity.Owner", b =>
                 {
                     b.Navigation("Campaigns");
@@ -1451,6 +1519,16 @@ namespace Rallyhub.Repository.Migrations
                     b.Navigation("Courts");
 
                     b.Navigation("OwnerRequest");
+                });
+
+            modelBuilder.Entity("Rallyhub.Repository.Entity.OwnerRequest", b =>
+                {
+                    b.Navigation("Notification");
+                });
+
+            modelBuilder.Entity("Rallyhub.Repository.Entity.Report", b =>
+                {
+                    b.Navigation("Notification");
                 });
 
             modelBuilder.Entity("Rallyhub.Repository.Entity.SubCourt", b =>
@@ -1462,6 +1540,16 @@ namespace Rallyhub.Repository.Migrations
                     b.Navigation("Exceptions");
 
                     b.Navigation("OverideSlots");
+                });
+
+            modelBuilder.Entity("Rallyhub.Repository.Entity.SystemReport", b =>
+                {
+                    b.Navigation("Notification");
+                });
+
+            modelBuilder.Entity("Rallyhub.Repository.Entity.Transaction", b =>
+                {
+                    b.Navigation("Notification");
                 });
 
             modelBuilder.Entity("Rallyhub.Repository.Entity.User", b =>
