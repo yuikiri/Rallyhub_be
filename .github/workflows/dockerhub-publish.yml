@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  IMAGE_NAME: Rallyhub-deploy
+  image_name: rallyhub-deploy
 
 jobs:
   docker:
