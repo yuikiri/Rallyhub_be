@@ -1,7 +1,7 @@
 ﻿using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
-namespace Rallyhub.Api.Extention;
+namespace TetPee.Api.Extention;
 
 public static class SwaggerExtensions
 {

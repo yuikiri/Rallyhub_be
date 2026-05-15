@@ -5,7 +5,7 @@ using Rallyhub.Api.Extention;
 using Rallyhub.Api.Middleware;
 using Rallyhub.Repository;
 using Rallyhub.Service.BackgroundJobService;
-using Rallyhub.Api.Extention;
+using TetPee.Api.Extention;
 using JwtService = Rallyhub.Service.JwtService;
 using MailService = Rallyhub.Service.MailService;
 using IdentityService = Rallyhub.Service.IdentityService;
@@ -30,7 +30,9 @@ using FeadbackService = Rallyhub.Service.Feadback;
 using CampaignService = Rallyhub.Service.Campaign;
 using DashboardService = Rallyhub.Service.Dashboard;
 using SystemReportService = Rallyhub.Service.SystemReport;
-// using DiscordService = Rallyhub.Service.DiscordService;
+using RevenueService = Rallyhub.Service.Revenue;
+using ReportService = Rallyhub.Service.Report;
+using DiscordService = Rallyhub.Service.DiscordService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,7 +66,7 @@ builder.Services.AddSwaggerServices();
 builder.Services.AddScoped<JwtService.IService, JwtService.Service>();
 builder.Services.AddScoped<MailService.IService, MailService.Service>();
 builder.Services.AddScoped<IdentityService.IService, IdentityService.Service>();
-// builder.Services.AddHttpClient<DiscordService.IService, DiscordService.Service>();
+builder.Services.AddHttpClient<DiscordService.IService, DiscordService.Service>();
 builder.Services.AddScoped<UserService.IService, UserService.Service>();
 builder.Services.AddScoped<OtpService.IService, OtpService.Service>();
 builder.Services.AddScoped<CourtService.IService, CourtService.Service>();
@@ -85,6 +87,8 @@ builder.Services.AddScoped<CampaignService.IService, CampaignService.Service>();
 builder.Services.AddScoped<FeadbackService.IService, FeadbackService.Service>();
 builder.Services.AddScoped<DashboardService.IService, DashboardService.Service>();
 builder.Services.AddScoped<SystemReportService.IService, SystemReportService.Service>();
+builder.Services.AddScoped<RevenueService.IRevenueService, RevenueService.RevenueService>();
+builder.Services.AddScoped<ReportService.IService, ReportService.Service>();
 
 
 
