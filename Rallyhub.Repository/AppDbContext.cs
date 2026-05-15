@@ -957,6 +957,5 @@
             modelBuilder.Entity<SubCourt>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Owner>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
-            
         }
     }
