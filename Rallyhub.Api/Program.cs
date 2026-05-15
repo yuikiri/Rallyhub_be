@@ -5,7 +5,7 @@ using Rallyhub.Api.Extention;
 using Rallyhub.Api.Middleware;
 using Rallyhub.Repository;
 using Rallyhub.Service.BackgroundJobService;
-using TetPee.Api.Extention;
+using Rallyhub.Api.Extention;
 using JwtService = Rallyhub.Service.JwtService;
 using MailService = Rallyhub.Service.MailService;
 using IdentityService = Rallyhub.Service.IdentityService;

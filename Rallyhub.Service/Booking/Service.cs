@@ -261,6 +261,8 @@ public class Service: IService
             throw new Exception("Không tìm thấy thông tin của customer");
         }
         var customerId = Guid.Parse(customerIdClaim);
+        var userId = _dbContext.Users.FirstOrDefault(x => 
+                                x.Customer!.Id == customerId);
 
         var availableSlotsSubCourt = new Dictionary<Guid, List<Owner.Response.SlotResponse>>();
         foreach (var item in request.Items)
@@ -396,6 +398,8 @@ public class Service: IService
             ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(100),
             CampaignId = request.CampaignId,
         };
+        await _dbContext.Bookings.AddAsync(booking);
+        await _dbContext.SaveChangesAsync();
 
         var bookingDetails = new List<BookingDetail>();
         foreach (var item in request.Items)
@@ -415,17 +419,38 @@ public class Service: IService
                 CreatedAt = DateTimeOffset.UtcNow,
             }));
         }
-        if (!await _walletService.ApartBanlanceFromWallet(customerId, finalPrice, "Payment"))
+        if (!await _walletService.ApartBanlanceFromWallet(userId!.Id, finalPrice, "Payment"))
         {
             throw new Exception("Wallet apart balance failed");
         } 
-//transaction
+        //transaction
+        var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(x => x.UserId == userId.Id);
+        if (wallet == null)
+        {
+            throw new Exception("Wallet not found");
+        }
+        var transactionI = new Transaction.Request.CreateTransactionRequest()
+        {
+            Type = Transaction.Request.TypeList.Payment,
+            Amount = finalPrice,
+            BalanceBefore = wallet.Balance + finalPrice, 
+            BalanceAfter = wallet.Balance,           
+            Status = "Success",
+            BookingId = booking.Id,
+            WalletId = wallet.Id,
+        };
+
+        if (!await _transactionService.CreateTransaction(transactionI))
+        {
+            throw new Exception("Error creating transaction");
+        }
+
         booking.Status = "Banked";
         foreach (var item in bookingDetails)
         {
             item.Status = "Banked";
         }
-        await _dbContext.Bookings.AddAsync(booking);
+        
         await _dbContext.BookingDetails.AddRangeAsync(bookingDetails);
 
         var bookedSubCourtId = bookingDetails.FirstOrDefault()?.SubCourtId;
