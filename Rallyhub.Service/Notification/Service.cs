@@ -1,3 +1,4 @@
+using System.Security.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Rallyhub.Repository;
@@ -160,10 +161,72 @@ public class Service : IService
         return result > 0;
     }
 
+    public async Task<string> DeleteNotification(Guid notificationId)
+    {
+        var userIdStr = _httpAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value;
+        if (userIdStr == null) return "Không tìm thấy thông tin người dùng.";
+        var userId = Guid.Parse(userIdStr);
+
+        var notification = await _dbContext.Notifications.FirstOrDefaultAsync(x => x.Id == notificationId);
+        if (notification == null) return "Không tìm thấy thông báo.";
+
+        var role = _httpAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+        bool isAdminDeletingSystemNote = role == "Admin" && 
+            (notification.Type == Request.TypeNotification.SystemReportCreated || 
+             notification.Type == Request.TypeNotification.ReportCreated ||
+             notification.Type == Request.TypeNotification.OwnerRequestSubmitted ||
+             notification.Type == Request.TypeNotification.WithdrawalRequested);
+
+        if (notification.UserId != userId && !isAdminDeletingSystemNote)
+        {
+            return "Bạn không có quyền xóa thông báo này.";
+        }
+
+        notification.IsDeleted = true;
+        notification.UpdatedAt = DateTimeOffset.UtcNow;
+        await _dbContext.SaveChangesAsync();
+        return "Xóa thông báo thành công.";
+    }
+
+    public async Task<string> DeleteAllRead()
+    {
+        var userIdStr = _httpAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value;
+        if (userIdStr == null) return "Không tìm thấy thông tin người dùng.";
+        var userId = Guid.Parse(userIdStr);
+
+        var role = _httpAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        IQueryable<Repository.Entity.Notification> query = _dbContext.Notifications.Where(x => x.IsRead && !x.IsDeleted);
+        if (role == "Admin")
+        {
+            query = query.Where(x => 
+                x.Type == Request.TypeNotification.SystemReportCreated || 
+                x.Type == Request.TypeNotification.ReportCreated ||
+                x.Type == Request.TypeNotification.OwnerRequestSubmitted ||
+                x.Type == Request.TypeNotification.WithdrawalRequested);
+        }
+        else
+        {
+            query = query.Where(x => x.UserId == userId);
+        }
+
+        var readNotes = await query.ToListAsync();
+        if (!readNotes.Any()) return "Thông báo đã được dọn sạch.";
+
+        foreach (var note in readNotes)
+        {
+            note.IsDeleted = true;
+            note.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+        
+        await _dbContext.SaveChangesAsync();
+        return $"Đã xóa {readNotes.Count} thông báo đã đọc.";
+    }
+
     public async Task<Base.Response.PageResult<Response.GetNotificationResponse>> GetNotification(Base.Request.PagingRequest request)
     {
         var userIdStr = _httpAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value;
-        if (userIdStr == null) throw new Exception("Unauthorized");
+        if (userIdStr == null) throw new AuthenticationException("Unauthorized");
         var userIdGuild = Guid.Parse(userIdStr);
         
         var query = _dbContext.Notifications
@@ -185,7 +248,8 @@ public class Service : IService
                 .ThenInclude(or => or.Customer)
                     .ThenInclude(c => c.User)
             .Include(n => n.Withdrawal)
-            .Where(x => x.UserId == userIdGuild)
+            .Where(x => x.UserId == userIdGuild  &&
+                x.IsDeleted == false)
             .OrderByDescending(x => x.CreatedAt);
 
         var total = await query.CountAsync();
@@ -228,10 +292,11 @@ public class Service : IService
                     .ThenInclude(c => c.User)
             .Include(n => n.Withdrawal)
             .Where(x => 
-                x.Type == Request.TypeNotification.SystemReportCreated || 
+                (x.Type == Request.TypeNotification.SystemReportCreated || 
                 x.Type == Request.TypeNotification.ReportCreated ||
                 x.Type == Request.TypeNotification.OwnerRequestSubmitted ||
-                x.Type == Request.TypeNotification.WithdrawalRequested)
+                x.Type == Request.TypeNotification.WithdrawalRequested) &&
+                x.IsDeleted == false)
             .OrderByDescending(x => x.CreatedAt);
 
         var total = await query.CountAsync();

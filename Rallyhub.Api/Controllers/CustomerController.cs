@@ -36,22 +36,6 @@ public class CustomerController : ControllerBase
         return Ok(ApiResponseFactory.SuccessResponse(result, "Success you!", HttpContext.TraceIdentifier));
     }
 
-    // [HttpPost("CheckCancelBooking")]
-    // public async Task<IActionResult> CheckCancelBooking(Request.CancelBooking request)
-    // {
-    //     var result = await _customerService.CheckCancelBooking(request);
-    //     return Ok(ApiResponseFactory.SuccessResponse(result, "Success you!", HttpContext.TraceIdentifier));
-    // }
-
-    // [HttpPatch("CancelBooking")]
-    // public async Task<IActionResult> CheckCancel(Request.CancelBooking request)
-    // {
-    //     await _customerService.CancelBooking(request);
-    //     return Ok(ApiResponseFactory.SuccessResponse("Success you!", HttpContext.TraceIdentifier));
-    // }
-    
-   
-
     [HttpGet("GetAllLikeList")]
     public async Task<IActionResult> GetAllLikeList([FromQuery] Service.Base.Request.PagingRequest request)
     {
@@ -73,12 +57,4 @@ public class CustomerController : ControllerBase
         return Ok(ApiResponseFactory.SuccessResponse("Success you!", HttpContext.TraceIdentifier));
     }
 
-    [HttpGet("GetAllBooking")]
-    public async Task<IActionResult> GetAllBooking([FromQuery] Service.Base.Request.PagingRequest request)
-    {
-        var result = await _customerService.GetAllBooking(request);
-        return Ok(ApiResponseFactory.SuccessResponse(result, "Success you!", HttpContext.TraceIdentifier));
-    }
-    
-    
 }
