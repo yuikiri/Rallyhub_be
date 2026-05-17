@@ -124,7 +124,78 @@ public class Service : IService
             TotalItems = totalCount,
         };
     }
-    
+    //Admin refund: Hùng check
+   /* public async Task<bool> CheckCancelBooking(Request.CancelBooking request)
+    {
+        var getCustomerId = _httpContext.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "CustomerId")?.Value;
+        if (getCustomerId == null)
+        {
+            throw new Exception("Customer không tồn tại");
+        }
+        var customerId = Guid.Parse(getCustomerId);
+        
+        var booking = await _dbContext.Bookings
+            .Include(x => x.BookingDetails)
+                .ThenInclude(x => x.SubCourt)
+                    .ThenInclude(x => x.Court)
+            .FirstOrDefaultAsync(x => 
+                x.Id == request.BookingId && x.CustomerId == customerId);
+        if (booking == null)
+        {
+            throw new Exception("Không tìm thấy đơn đặt sân");
+        }
+        var earlierSlot = booking.BookingDetails.OrderBy(x => x.StartTime).First();
+        var refundDeadline = earlierSlot.Date.AddHours((double)-earlierSlot.SubCourt.Court.TimeRefundBefor!);
+        var timeNow = DateTimeOffset.UtcNow;
+        if (timeNow > refundDeadline)
+        {
+            return false;
+        }
+
+        return true;
+    }
+    public async Task CancelBooking(Request.CancelBooking request)
+    {
+        var getCustomerId = _httpContext.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "CustomerId")?.Value;
+        if (getCustomerId == null)
+        {
+            throw new Exception("User not found");
+        }
+        var customerId = Guid.Parse(getCustomerId!);
+        var checkCancelBooking = await CheckCancelBooking(request);
+        
+        if (checkCancelBooking)
+        {
+            var customer = await _dbContext.Customers
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x => x.Id == customerId);
+            if (customer == null)
+            {
+                throw new Exception("User không tồn tại trong hệ thống");
+            }
+            await _mailService.SendMail(new MailContent()
+            {
+                To = customer.User.Email,
+                Subject = "Welcom to Rallyhub",
+                Body = "Tiền sẽ được hoàn từ 3 - 5 ngày tính từ lúc hủy"
+            });
+            var bookingDetail = await _dbContext.BookingDetails
+                .FirstOrDefaultAsync(x => x.Id == request.BookingDetailId);
+            bookingDetail!.Status = "RefundPending";
+            bookingDetail.UpdatedAt = DateTimeOffset.UtcNow;
+            _dbContext.BookingDetails.Update(bookingDetail);
+            await _dbContext.SaveChangesAsync();
+            return;
+        }
+        var bookingDetailQuery = await _dbContext.BookingDetails
+                                                .FirstOrDefaultAsync(x => x.Id == request.BookingDetailId);
+        bookingDetailQuery!.Status = "Cancelled";
+        bookingDetailQuery.UpdatedAt = DateTimeOffset.UtcNow;
+        _dbContext.BookingDetails.Update(bookingDetailQuery);
+        await _dbContext.SaveChangesAsync();
+    }*/
+
+   
    public async Task<Base.Response.PageResult<Response.LikeListResponse>> GetAllLikeList(Base.Request.PagingRequest request)
     {
         var getCustomerId = _httpContext.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "CustomerId")?.Value;
@@ -223,5 +294,36 @@ public class Service : IService
         _dbContext.LikeListDetails.Update(courtLike);
         await _dbContext.SaveChangesAsync();
     }
+    public async Task<Base.Response.PageResult<Response.BookingResponse>> GetAllBooking(Base.Request.PagingRequest request)
+    {
+        
+        var userId = _httpContext.HttpContext.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value;
+        var userIdGuild = Guid.Parse(userId!);
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == userIdGuild);
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("User not found");
+        }
+        var bookingList = _dbContext.Bookings.Where(x => x.Customer.UserId == user.Id);
+        var pageQuery = bookingList
+            .Skip((request.PageIndex - 1) * request.PageSize)
+            .Take(request.PageSize);
+        var selectQuery = pageQuery.Select(x => new Response.BookingResponse()
+        {
+            Id =  x.Id,
+            FinalPrice = x.FinalPrice,
+            Status = x.Status,
+            CreatedAt = x.CreatedAt,
+        });
+        var result = await selectQuery.ToListAsync();
+        return new Base.Response.PageResult<Response.BookingResponse>()
+        {
+            Items = result,
+            PageIndex = request.PageIndex,
+            PageSize = request.PageSize,
+            TotalItems = await bookingList.CountAsync()
+        };
+    }
+    
     
 }
