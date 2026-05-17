@@ -128,15 +128,14 @@ public class Service : IService
             if (pendingTransaction.Amount != requestAmount)
             {
                 pendingTransaction.Amount = requestAmount;
+                _dbcontext.Transactions.Update(pendingTransaction);
+                await _dbcontext.SaveChangesAsync();
             }
-            pendingTransaction.CreatedAt = DateTimeOffset.UtcNow;
-            pendingTransaction.UpdatedAt = DateTimeOffset.UtcNow;
-            _dbcontext.Transactions.Update(pendingTransaction);
-            await _dbcontext.SaveChangesAsync();
         
             string bankName = "MBBank";
             string bankAccount = "VQRQAIUZK3222";
-            string description = $"WA-{existWallet.Id:N}";
+            string description = $"WA{pendingTransaction.Id:N}";
+            string nguoinhan = "PHAM QUOC HOANG";
         
             string qrCodeUrl = $"https://qr.sepay.vn/img?" +
                                $"acc={bankAccount}&" +
@@ -149,25 +148,22 @@ public class Service : IService
             {
                 Id = existWallet.Id,
                 TransactionId = pendingTransaction.Id,
+                BankName = bankName,
+                BankAccount = nguoinhan,
                 Amount = requestAmount,
                 QrCodeUrl = qrCodeUrl,
+                Created = pendingTransaction.CreatedAt,
             };
         }
         else
         {
             string bankName = "MBBank";
             string bankAccount = "VQRQAIUZK3222";
-            string description = $"WA-{existWallet.Id:N}";
             string nguoinhan = "PHAM QUOC HOANG";
-            string qrCodeUrl = $"https://qr.sepay.vn/img?" +
-                               $"acc={bankAccount}&" +
-                               $"bank={bankName}&" +
-                               $"amount={requestAmount}&" +
-                               $"des={description}&" +
-                               $"template=qronly";
-    
+            
             var transactionI = new Repository.Entity.Transaction
             {
+                Id = Guid.NewGuid(),
                 Type = Transaction.Request.TypeList.Deposit,
                 Amount = requestAmount,
                 BalanceBefore = existWallet.Balance,
@@ -180,6 +176,14 @@ public class Service : IService
             _dbcontext.Transactions.Add(transactionI);
             await _dbcontext.SaveChangesAsync();
 
+            string description = $"WA{transactionI.Id:N}";
+            string qrCodeUrl = $"https://qr.sepay.vn/img?" +
+                               $"acc={bankAccount}&" +
+                               $"bank={bankName}&" +
+                               $"amount={requestAmount}&" +
+                               $"des={description}&" +
+                               $"template=qronly";
+
             return new Response.AddBalanceToWalletFromPaymentResponse
             {
                 Id = existWallet.Id,
@@ -188,7 +192,7 @@ public class Service : IService
                 BankAccount = nguoinhan,
                 Amount = requestAmount,
                 QrCodeUrl = qrCodeUrl,
-                Created = DateTimeOffset.UtcNow,
+                Created = transactionI.CreatedAt,
             };
         }
     }
@@ -198,7 +202,7 @@ public class Service : IService
         var transaction = await _dbcontext.Transactions.FirstOrDefaultAsync(x => x.Id == transactionId);
         if (transaction == null)
         {
-            throw new ArgumentException("Transaction not found");
+            throw new Exception("Transaction not found");
         }
 
         if (transaction.Status == "Success")
@@ -209,7 +213,7 @@ public class Service : IService
         if (transaction.Status == "Pending")
         {
             var now = DateTimeOffset.UtcNow;
-            if (now.Subtract(transaction.CreatedAt).TotalSeconds > 900) // 15 minutes timeout for banking transfers
+            if (now.Subtract(transaction.CreatedAt).TotalSeconds > 60)
             {
                 transaction.Status = "Failed";
                 transaction.UpdatedAt = now;
