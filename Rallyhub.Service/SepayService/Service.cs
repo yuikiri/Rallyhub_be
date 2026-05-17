@@ -148,6 +148,14 @@ public class Service : IService
         }
         else if (description.StartsWith("WA"))
         {
+            // 1. Kiểm tra Idempotent: Nếu giao dịch đã được xử lý thành công trước đó (tránh lỗi duplicate ActionCode khi polling liên tục)
+            var existingTx = await _dbContext.Transactions
+                .FirstOrDefaultAsync(t => t.ActionCode == request.Code);
+            if (existingTx != null)
+            {
+                return true;
+            }
+
             var raw = description.Replace("WA", "");
 
             if (string.IsNullOrEmpty(raw) || raw.Length < 28)
