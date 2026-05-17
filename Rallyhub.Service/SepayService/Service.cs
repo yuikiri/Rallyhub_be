@@ -149,71 +149,68 @@ public class Service : IService
         else if (description.StartsWith("WA"))
         {
             var raw = description.Replace("WA", "");
- 
+
             if (string.IsNullOrEmpty(raw) || raw.Length < 28)
             {
                 throw new Exception("Error code");
             }
- 
+
             var formatted =
                 $"{raw.Substring(0, 8)}-" +
                 $"{raw.Substring(8, 4)}-" +
                 $"{raw.Substring(12, 4)}-" +
                 $"{raw.Substring(16, 4)}-" +
                 $"{raw.Substring(20, 10)}";
- 
-            Repository.Entity.Transaction? targetTransaction = null;
+
+            Repository.Entity.Wallet? targetWallet = null;
             if (Guid.TryParse(formatted, out var exactGuid))
             {
-                targetTransaction = await _dbContext.Transactions
+                targetWallet = await _dbContext.Wallets
                     .FirstOrDefaultAsync(x => x.Id == exactGuid);
             }
- 
-            if (targetTransaction == null)
+
+            if (targetWallet == null)
             {
-                targetTransaction = await _dbContext.Transactions
+                targetWallet = await _dbContext.Wallets
                     .Where(x => EF.Functions.TrigramsSimilarity(x.Id.ToString(), formatted) > 0.68)
                     .OrderBy(x => EF.Functions.TrigramsSimilarityDistance(x.Id.ToString(), formatted))
                     .FirstOrDefaultAsync();
             }
- 
-            if (targetTransaction == null)
+
+            if (targetWallet == null)
             {
                 throw new Exception("Not found");
             }
- 
-            if (targetTransaction.Status != "Pending")
+
+            var transaction =
+                await _dbContext.Transactions.FirstOrDefaultAsync(x =>
+                    x.WalletId == targetWallet.Id && x.Status == "Pending");
+            
+            if (transaction == null)
             {
-                return true;
-            }
- 
-            var targetWallet = await _dbContext.Wallets
-                .FirstOrDefaultAsync(x => x.Id == targetTransaction.WalletId);
-            if (targetWallet == null)
-            {
-                throw new Exception("Wallet not found");
+                throw new Exception("Transaction not found");
             }
 
-            var balanceBefore = targetWallet.Balance;
+            if (transaction.Amount != request.TransferAmount)
+            {
+                throw new Exception("Invalid transfer amount");
+            }
 
             if (!await _walletService.AddBanlanceToWallet(targetWallet.UserId, request.TransferAmount, "Payment"))
             {
                 throw new Exception("Wallet reject balance failed");
             }
- 
-            targetTransaction.Status = "Success";
-            targetTransaction.BalanceBefore = balanceBefore;
-            targetTransaction.BalanceAfter = balanceBefore + request.TransferAmount;
-            targetTransaction.SePayId = request.Id.ToString();
-            targetTransaction.BankRefCode = request.ReferenceCode;
-            targetTransaction.BankAccountNumber = request.AccountNumber;
-            targetTransaction.TransferContent = request.Content;
-            targetTransaction.ActionCode = request.Code + "-" + request.Id;
-            targetTransaction.Signature = request.Description;
-            targetTransaction.UpdatedAt = DateTimeOffset.UtcNow;
- 
-            _dbContext.Transactions.Update(targetTransaction);
-             
+
+            transaction.Status = "Success";
+            transaction.SePayId = request.Id.ToString(); //
+            transaction.BankRefCode = request.ReferenceCode; //
+            transaction.BankAccountNumber = request.AccountNumber;
+            transaction.TransferContent = request.Content; //
+            transaction.ActionCode = request.Code; //
+            transaction.Signature = request.Description; //
+            transaction.UpdatedAt = DateTimeOffset.UtcNow;
+            _dbContext.Update(transaction);
+            
             _notificationService.CreateNotification(new Notification.Request.CreateNotificationRequest
             {
                 UserId = targetWallet.UserId,
@@ -221,13 +218,13 @@ public class Service : IService
                 Content = $"Bạn đã nạp thành công {request.TransferAmount:N0}đ vào ví qua chuyển khoản ngân hàng.",
                 Type = Notification.Request.TypeNotification.WalletDepositSuccess
             });
- 
+
             var result = await _dbContext.SaveChangesAsync();
             if (result > 0)
             {
                 return true;
             }
- 
+
             return false;
         }
         else

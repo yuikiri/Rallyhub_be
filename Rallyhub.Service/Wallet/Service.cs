@@ -120,29 +120,105 @@ public class Service : IService
         {
             throw new Exception("Không tìm thấy ví");
         }
-        
-        string bankName = "MBBank";
-        string bankAccount = "VQRQAIUZK3222";
-        string description = $"WA-{existWallet.Id:N}";
-        string nguoinhan = "PHAM QUOC HOANG";
-        
-        string qrCodeUrl = $"https://qr.sepay.vn/img?" +
-                           $"acc={bankAccount}&" +
-                           $"bank={bankName}&" +
-                           $"amount={requestAmount}&" +
-                           $"des={description}&" +
-                           $"template=qronly";
-
-        return new Response.AddBalanceToWalletFromPaymentResponse
+        var pendingTransaction = await _dbcontext.Transactions
+            .FirstOrDefaultAsync(x => x.Status == "Pending" &&
+                                      x.WalletId == existWallet.Id);
+        if (pendingTransaction != null)
         {
-            Id = existWallet.Id,
-            TransactionId = Guid.Empty,
-            BankName = bankName,
-            BankAccount = nguoinhan,
-            Amount = requestAmount,
-            QrCodeUrl = qrCodeUrl,
-            Created = DateTimeOffset.UtcNow,
-        };
+            if (pendingTransaction.Amount != requestAmount)
+            {
+                pendingTransaction.Amount = requestAmount;
+                _dbcontext.Transactions.Update(pendingTransaction);
+                await _dbcontext.SaveChangesAsync();
+            }
+        
+            string bankName = "MBBank";
+            string bankAccount = "VQRQAIUZK3222";
+            string description = $"WA-{existWallet.Id:N}";
+        
+            string qrCodeUrl = $"https://qr.sepay.vn/img?" +
+                               $"acc={bankAccount}&" +
+                               $"bank={bankName}&" +
+                               $"amount={requestAmount}&" +
+                               $"des={description}&" +
+                               $"template=qronly";
+            
+            return new Response.AddBalanceToWalletFromPaymentResponse
+            {
+                Id = existWallet.Id,
+                TransactionId = pendingTransaction.Id,
+                Amount = requestAmount,
+                QrCodeUrl = qrCodeUrl,
+            };
+        }
+        else
+        {
+            string bankName = "MBBank";
+            string bankAccount = "VQRQAIUZK3222";
+            string description = $"WA-{existWallet.Id:N}";
+            string nguoinhan = "PHAM QUOC HOANG";
+            string qrCodeUrl = $"https://qr.sepay.vn/img?" +
+                               $"acc={bankAccount}&" +
+                               $"bank={bankName}&" +
+                               $"amount={requestAmount}&" +
+                               $"des={description}&" +
+                               $"template=qronly";
+    
+            var transactionI = new Repository.Entity.Transaction
+            {
+                Type = Transaction.Request.TypeList.Deposit,
+                Amount = requestAmount,
+                BalanceBefore = existWallet.Balance,
+                BalanceAfter =  existWallet.Balance + requestAmount,
+                Status = "Pending",
+                WalletId =  existWallet.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            _dbcontext.Transactions.Add(transactionI);
+            await _dbcontext.SaveChangesAsync();
+
+            return new Response.AddBalanceToWalletFromPaymentResponse
+            {
+                Id = existWallet.Id,
+                TransactionId = transactionI.Id,
+                BankName = bankName,
+                BankAccount = nguoinhan,
+                Amount = requestAmount,
+                QrCodeUrl = qrCodeUrl,
+                Created = DateTimeOffset.UtcNow,
+            };
+        }
+    }
+
+    public async Task<string> CheckDepositStatus(Guid transactionId)
+    {
+        var transaction = await _dbcontext.Transactions.FirstOrDefaultAsync(x => x.Id == transactionId);
+        if (transaction == null)
+        {
+            throw new Exception("Transaction not found");
+        }
+
+        if (transaction.Status == "Success")
+        {
+            return "Success";
+        }
+
+        if (transaction.Status == "Pending")
+        {
+            var now = DateTimeOffset.UtcNow;
+            if (now.Subtract(transaction.CreatedAt).TotalSeconds > 60)
+            {
+                transaction.Status = "Failed";
+                transaction.UpdatedAt = now;
+                _dbcontext.Transactions.Update(transaction);
+                await _dbcontext.SaveChangesAsync();
+                return "Expired";
+            }
+            return "Pending";
+        }
+
+        return transaction.Status;
     }
     public async Task<bool> AddBanlanceToWallet(Guid userId, decimal amount, string type)
     {
