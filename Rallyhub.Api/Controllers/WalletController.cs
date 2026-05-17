@@ -56,12 +56,4 @@ public class WalletController : ControllerBase
         var result = await _walletService.AdminUpBalanceForUser(userId, amount, description);
         return Ok(ApiResponseFactory.SuccessResponse(result, "Success AdminDeduct wallet", HttpContext.TraceIdentifier));
     }
-
-    [Authorize(Policy = JwtExtensions.CustomerOrOwnerPolicy)]
-    [HttpGet("CheckDepositStatus/{transactionId}")]
-    public async Task<IActionResult> CheckDepositStatus(Guid transactionId)
-    {
-        var result = await _walletService.CheckDepositStatus(transactionId);
-        return Ok(ApiResponseFactory.SuccessResponse(result, "Success check status", HttpContext.TraceIdentifier));
-    }
 }

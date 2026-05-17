@@ -182,34 +182,34 @@ public class Service : IService
                 throw new Exception("Not found");
             }
 
-            var transaction =
-                await _dbContext.Transactions.FirstOrDefaultAsync(x =>
-                    x.WalletId == targetWallet.Id && x.Status == "Pending");
-            
-            if (transaction == null)
-            {
-                throw new Exception("Transaction not found");
-            }
-
-            if (transaction.Amount != request.TransferAmount)
-            {
-                throw new Exception("Invalid transfer amount");
-            }
+            var balanceBefore = targetWallet.Balance;
 
             if (!await _walletService.AddBanlanceToWallet(targetWallet.UserId, request.TransferAmount, "Payment"))
             {
                 throw new Exception("Wallet reject balance failed");
             }
 
-            transaction.Status = "Success";
-            transaction.SePayId = request.Id.ToString(); //
-            transaction.BankRefCode = request.ReferenceCode; //
-            transaction.BankAccountNumber = request.AccountNumber;
-            transaction.TransferContent = request.Content; //
-            transaction.ActionCode = request.Code; //
-            transaction.Signature = request.Description; //
-            transaction.UpdatedAt = DateTimeOffset.UtcNow;
-            _dbContext.Update(transaction);
+            // Tạo mới transaction nạp tiền thành công khi Sepay xác nhận thanh toán
+            var transactionI = new Transaction.Request.CreateTransactionRequest()
+            {
+                Type = Transaction.Request.TypeList.Deposit,
+                Amount = request.TransferAmount,
+                BalanceBefore = balanceBefore,
+                BalanceAfter = balanceBefore + request.TransferAmount,
+                Status = "Success",
+                SePayId = request.Id.ToString(),
+                BankRefCode = request.ReferenceCode,
+                BankAccountNumber = request.AccountNumber,
+                TransferContent = request.Content,
+                ActionCode = request.Code,
+                Signature = request.Description,
+                WalletId = targetWallet.Id,
+            };
+
+            if (!await _transactionService.CreateTransaction(transactionI))
+            {
+                throw new Exception("Error creating transaction");
+            }
             
             _notificationService.CreateNotification(new Notification.Request.CreateNotificationRequest
             {
